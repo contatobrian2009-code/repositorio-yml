@@ -1,0 +1,51 @@
+name: Testes de Frontend (HTML)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  testes-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Instalar Playwright para automação de browser
+        run: |
+          npm install -g @playwright/test
+          npx playwright install --with-deps chromium
+
+      - name: Iniciar servidor local
+        run: |
+          python3 -m http.server 8080 &
+          sleep 3
+
+      - name: Executar teste do HTML no navegador
+        run: |
+          node -e "
+          const { chromium } = require('@playwright/test');
+          (async () => {
+            const browser = await chromium.launch();
+            const page = await browser.newPage();
+            await page.goto('http://localhost:8080/test-frontend.html');
+            await page.waitForTimeout(2000); // Aguarda a execução dos testes
+            
+            const falhas = await page.\$('.fail');
+            if (falhas) {
+              console.error('❌ Falhas encontradas nos testes do frontend!');
+              process.exit(1);
+            } else {
+              console.log('✅ Todos os testes do frontend passaram!');
+              process.exit(0);
+            }
+          })();
+          "
